@@ -2,7 +2,7 @@
 ## uni-app的pages.json的模块化热重载  
 解决uni-app的pages.json无法模块化的问题，并且解决模块热重载和缓存的问题  
 ### uni-app的彩蛋  
-uni-app自带一个webpack loader钩子文件pages.js，在项目根目录建立pages.js即可生效(pages.json仍然需要存在，作为初始值，建议存放一些和路由无关的配置)。  
+uni-app自带一个webpack loader钩子文件pages.js，在项目src目录下建立pages.js（与pages.json同级）即可生效（pages.json仍然需要存在，作为初始值，建议存放一些和路由无关的配置）。   
 pages.js要求CommonJS规范，直接通过module.exports输出一个钩子函数。  
   
 ### pages.js输出的函数参数  
