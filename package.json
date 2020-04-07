@@ -1,0 +1,25 @@
+{
+  "name": "uni-pages-hot-modules",
+  "version": "0.0.2",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "files": [
+    "index.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devilwjp/uni-pages-hot-modules.git"
+  },
+  "author": "devilwjp(天堂里的花大咩)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/devilwjp/uni-pages-hot-modules/issues"
+  },
+  "homepage": "https://github.com/devilwjp/uni-pages-hot-modules#readme",
+  "dependencies": {
+    "callsites": "^3.1.0"
+  }
+}
