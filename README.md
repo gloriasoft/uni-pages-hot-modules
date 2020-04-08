@@ -27,7 +27,7 @@ uni-pages-loader的钩子属性，{ addDependency < Function > }
 ##### addDependency  
 用于手动为uni-pages-loader添加依赖模块  
   
-### 示例  
+### pages.js示例  
 ```javascript
 module.exports=(pagesJson,loader)=>{
     const hotRequire = require('uni-pages-hot-modules')(loader)
@@ -56,7 +56,7 @@ module.exports=(pagesJson,loader)=>{
 ```  
 ### 模块的规范  
 被加载的模块建议也按照pages.js的规范返回一个函数，并接收content和loader参数，这样可以确保模块后续继续依赖其他模块可以热重载  
-#### 示例  
+#### module1.js示例  
 ```javascript
 module.exports=(content,loader)=>{
     const hotRequire = require('uni-pages-hot-modules')(loader)
