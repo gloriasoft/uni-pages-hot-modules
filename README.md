@@ -1,6 +1,20 @@
 # uni-pages-hot-modules  
 ## uni-app的pages.json的模块化热重载  
 解决uni-app的pages.json无法模块化的问题，并且解决模块热重载和缓存的问题  
+  
+### 安装  
+```
+npm i uni-pages-hot-modules -S
+```
+  
+### uni-pages-hot-modules做了什么  
+```javascript
+// 做了非常轻便的事情，相当于
+loader.addDependency(module)
+delete require.cache[module]
+require(module)
+```  
+  
 ### uni-app的彩蛋  
 uni-app自带一个webpack loader钩子文件pages.js，在项目src目录下建立pages.js（与pages.json同级）即可生效（pages.json仍然需要存在，作为初始值，建议存放一些和路由无关的配置）。   
 pages.js要求CommonJS规范，直接通过module.exports输出一个钩子函数。  
@@ -56,12 +70,4 @@ module.exports=(content,loader)=>{
         ...hotRequire('./sub-module1.js')(content,loader)
     ]
 }
-```
-
-### uni-pages-hot-modules做了什么  
-```javascript
-// 做了非常轻便的事情，相当于
-loader.addDependency(module)
-delete require.cache[module]
-require(module)
 ```
