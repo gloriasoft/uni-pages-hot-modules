@@ -10,9 +10,9 @@ npm i uni-pages-hot-modules -S
 ### uni-pages-hot-modules做了什么  
 ```javascript
 // 做了非常轻便的事情，相当于
-loader.addDependency(module)
-delete require.cache[module]
-require(module)
+loader.addDependency(modulePath)
+delete require.cache[modulePath]
+require(modulePath)
 ```  
   
 ### uni-app的彩蛋  
