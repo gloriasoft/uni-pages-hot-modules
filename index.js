@@ -18,7 +18,7 @@ module.exports=function (mix){
 
     if(mix && typeof mix.addDependency === 'function'){
         process.UNI_PAGES_HOT_MODULES_HOOK = mix.addDependency
-        // 我对DCloud极度失望,竟然在新版本里注释掉了对pages.js的依赖,导致pages.js不能热重载,太随意了! 这里主动手动帮他上pages.js的依赖
+        // uni-app在新版本里注释掉了对pages.js的依赖,导致pages.js不能热重载, 这里主动手动帮他加上pages.js的依赖
         try{
             process.UNI_PAGES_HOT_MODULES_HOOK(path.resolve(parentPath, './pages.js'))
         }catch(e){}
