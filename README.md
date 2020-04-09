@@ -6,6 +6,7 @@
 ```
 npm i uni-pages-hot-modules -S
 ```
+[pages.json模块化及使用了uni-pages-hot-modules进行模块热重载的uni-app示例项目](https://github.com/devilwjp/uni-pages-hot-modules-demo)  
   
 ### 注意！  
 发现uni-app每次更新对pages.js的支持度会不同，比如某个版本竟然注释掉了对pages.js的热重载依赖，这里做了兼容。只要uni-app不推翻自己的设计，此功能长久有效  

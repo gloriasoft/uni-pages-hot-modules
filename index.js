@@ -1,6 +1,14 @@
 const path = require('path')
 const callsites = require('callsites');
-module.exports=function (mix){
+
+/**
+ * CommonJs规范
+ * 引入相关的js依赖，并且可以使依赖在@dcloudio/webpack-uni-pages-loader中进行热重载
+ * 只可用于uni-app项目的pages.js中
+ * @param mix <Object | String> loader 或者 依赖的路径
+ * @returns {*} mix为loader时为初始化，返回hotRequire，mix为依赖的路径时，返回依赖
+ */
+function uniPagesHotModule (mix) {
     let parentPath = ''
     try{
         // 尝试获取调用此方法的文件所在目录
@@ -23,9 +31,11 @@ module.exports=function (mix){
             process.UNI_PAGES_HOT_MODULES_HOOK(path.resolve(parentPath, './pages.js'))
         }catch(e){}
         return hotRequire
-    }else if (typeof mix === 'string'){
-        return hotRequire(mix)
-    }else{
-        throw new Error('参数错误，只接受loader或者modulePath')
     }
+    if (typeof mix === 'string'){
+        return hotRequire(mix)
+    }
+    throw new Error('参数错误，只接受loader或者modulePath')
 }
+
+module.exports = uniPagesHotModule
