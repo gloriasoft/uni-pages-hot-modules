@@ -39,25 +39,25 @@ uni-pages-loader的钩子属性，{ addDependency < Function > }
 module.exports=(pagesJson,loader)=>{
     // 需要将loader传入作为初始化，v0.0.6之后只需要初始化一次
     const hotRequire = require('uni-pages-hot-modules')(loader)
+    let basePages = []
+    let baseSubPackages = []
+
     return {
-        "pages": [
-            {
-                "path": "pages/about/about",
-                "style": {
-                    "navigationBarTitleText": "测试1"
-                }
-            },
-            ...hotRequire('./module1.js')
+        // 合并pages.json的内容
+        ...pagesJson,
+        pages:[
+            ...basePages,
+            ...hotRequire('./page_modules/tabbar.js'),
+            ...hotRequire('./page_modules/component.js'),
+            ...hotRequire('./page_modules/appPlus.js'),
+            ...hotRequire('./page_modules/module1.js')
         ],
-        "subPackages":[{
-            "root": "pages/test",
-            "pages": [{
-                "path": "about",
-                "style": {
-                    "navigationBarTitleText": "测试"
-                }
-            }]
-        }]
+        subPackages:[
+            ...baseSubPackages,
+            ...hotRequire('./subpackage_modules/api.js'),
+            ...hotRequire('./subpackage_modules/extUI.js'),
+            ...hotRequire('./subpackage_modules/template.js')
+        ]
     }
 }
 
@@ -75,7 +75,8 @@ module.exports=[
            "navigationBarTitleText": "sub"
        }
    },
-   ...hotRequire('./sub-module1.js')
+   // 在模块里继续引入其他子模块
+   ...hotRequire('./some-sub-module1.js')
 ]
 ```  
   
