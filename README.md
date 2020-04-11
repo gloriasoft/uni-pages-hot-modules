@@ -81,6 +81,128 @@ module.exports=[
 ]
 ```  
   
+### API  
+#### context {function}  
+模拟webpack的require.context  
+与webpack不同的地方是不会将调用此方法的模块输出，没有id属性，resolve方法返回绝对路径  
+```javascript
+const files = hotRequire.context('.', true, /\.js$/)
+const modules = []
+files.keys().forEach(key => {
+    if (key === './index.js') return
+    const item = files(key)
+    modules.push(...item)
+})
+module.exports = modules
+```
+  
+### 高级用法  
+实现了pages.json的模块化配置以及动态热更新意义非常大，但是还能更进一步，就是将配置模块可以同样应用到uni-app的代码层引用中。  
+最常见的例子就是一些router插件，比如uni-simple-router，需要在应用层代码中单独配置路由表，虽然它提供了uni-read-pages，但是也只能在刚开始导入一次，并不支持热更新。  
+这里我们给出一个两全其美的方案，就是将pages.js依赖的路由模块同样可以被uni-app代码层引入并依赖（同一个js文件在两个环境中被依赖）  
+1. 模块中不能使用require引入uni-pages-hot-modules，需要在pages.js中使用global命名空间引入一次即可  
+2. 需要在vue.config.js中使用DefinePlugin将hotRequire和hotRequire.context分别替换成require和require.context  
+3. pages.js本身不能被引用到uni-app的代码层中  
+#### pages.js示例  
+```javascript
+/**
+ * 使用global是为了之后的模块不需要再去引入uni-pages-hot-modules
+ * 更重要的是为了之后可以在客户端代码直接引入模块做准备
+ * 在vue.config.js中使用DefinePlugin插件，将hotRequire替换成require
+ * 就可以在客户端代码引入路由模块，可用于uni-simple-router，并且做到本地和客户端代码双向热重载
+ */
+global.hotRequire = require('uni-pages-hot-modules')
+
+/**
+ * 输出最终的pages.json解析内容
+ * @param pagesJson {Object} src/pages.json的文件解析内容（作为初始内容传入）
+ * @param loader {Object} @dcloudio/webpack-uni-pages-loader会传入一个loader对象
+ * @returns {Object} uni-app需要的pages.json配置内容
+ */
+function exportPagesConfig (pagesJson={}, loader={}) {
+    // 初始化uni-pages-hot-modules（输入loader）
+    hotRequire(loader)
+    // pages的初始配置
+    let basePages = []
+    // subPackages的初始配置
+    let baseSubPackages = []
+
+    // 要输出的pages
+    let pages = [
+        ...basePages,
+        ...hotRequire('./page_modules/index.js')
+    ]
+
+    // 要输出的subPackages
+    let subPackages = [
+        ...baseSubPackages,
+        ...hotRequire('./subpackage_modules/api.js'),
+        ...hotRequire('./subpackage_modules/extUI.js'),
+        ...hotRequire('./subpackage_modules/template.js')
+    ]
+
+    return {
+        // 合并pages.json的初始内容
+        ...pagesJson,
+        pages,
+        subPackages
+    }
+}
+
+module.exports = exportPagesConfig
+```  
+#### ./page_modules/index.js示例  
+page_modules下的所有js文件都应该是路由模块文件，hotRequire.context将深层遍历所有的模块并输出  
+**此文件在uni-app的应用代码中也有效（可以import和require）** 
+```javascript
+const files = hotRequire.context('.', true, /\.js$/)
+const modules = []
+files.keys().forEach(key => {
+    if (key === './index.js') return
+    const item = files(key)
+    modules.push(...item)
+})
+module.exports = modules
+```  
+#### uni-simple-router的router文件示例(router/index.js)  
+```javascript
+import Vue from 'vue'
+import Router from '../common/uni-simple-router'
+
+Vue.use(Router)
+//初始化
+const router = new Router({
+    routes: [
+        ...require('../page_modules'),
+    ]//路由表
+});
+
+//全局路由前置守卫
+router.beforeEach((to, from, next) => {
+    next()
+})
+// 全局路由后置守卫
+router.afterEach((to, from) => {
+})
+export default router;
+```  
+#### vue.config.js示例  
+```javascript
+const webpack = require('webpack')
+module.exports = {
+    configureWebpack: {
+        plugins: [
+            new webpack.DefinePlugin({
+                // 在客户端包中将hotRequire替换成require
+                'hotRequire':'require',
+                // 在客户端包中将hotRequireContext替换成require.context（必须替换，不能只替换hotRequire）
+                'hotRequire.context': 'require.context'
+            })
+        ]
+    }
+}
+```
+  
 ### 其他  
-不支持条件编译，需要自己通过process.env.UNI_PLATFORM来判断，自定义环境的需要自己添加env变量来判断  
+不支持条件编译，需要自己通过process.env.VUE_APP_PLATFORM来判断（不建议使用process.env.UNI_PLATFORM，因为在webpack客户端包里无法读取此环境变量，除非设置DefinePlugin），自定义环境的需要自己添加env变量来判断  
 使用uni-pages-hot-modules引入模块必须输入全的文件名包括后缀，否则将不会进行热重载
