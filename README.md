@@ -153,7 +153,8 @@ module.exports = exportPagesConfig
 ```  
 #### ./page_modules/index.js示例  
 page_modules下的所有js文件都应该是路由模块文件，hotRequire.context将深层遍历所有的模块并输出  
-**此文件在uni-app的应用代码中也有效（可以import和require）** 
+**此文件在uni-app的应用代码中也有效（可以import和require）**  
+因为pages.js中使用了global命名hotRequire，所以在后续的依赖文件中都不需要再次引入uni-pages-hot-modules，hotRequire相当于全局存在  
 ```javascript
 const files = hotRequire.context('.', true, /\.js$/)
 const modules = []
