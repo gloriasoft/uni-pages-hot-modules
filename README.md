@@ -9,7 +9,8 @@ npm i uni-pages-hot-modules -S
 [pages.json模块化及使用了uni-pages-hot-modules进行模块热重载的uni-app示例项目](https://github.com/devilwjp/uni-pages-hot-modules-demo)  
   
 ### 注意！  
-发现uni-app每次更新对pages.js的支持度会不同，比如某个版本竟然注释掉了对pages.js的热重载依赖，这里做了兼容。只要uni-app不推翻自己的设计，此功能长久有效  
++ 发现uni-app每次更新对pages.js的支持度会不同，比如某个版本竟然注释掉了对pages.js的热重载依赖，这里做了兼容。只要uni-app不推翻自己的设计，此功能长久有效  
++ 使用uni-pages-hot-modules引入模块必须输入全的文件名包括后缀，否则将不会进行热重载  
 
 ### uni-pages-hot-modules做了什么  
 ```javascript
@@ -206,4 +207,3 @@ module.exports = {
   
 ### 其他  
 不支持条件编译，需要自己通过process.env.VUE_APP_PLATFORM来判断（不建议使用process.env.UNI_PLATFORM，因为在webpack客户端包里无法读取此环境变量，除非设置DefinePlugin），自定义环境的需要自己添加env变量来判断  
-使用uni-pages-hot-modules引入模块必须输入全的文件名包括后缀，否则将不会进行热重载
