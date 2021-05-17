@@ -21,30 +21,28 @@ let addDependency
  * 引入相关的js依赖，并且可以使依赖在@dcloudio/webpack-uni-pages-loader中进行热重载
  * 只可用于uni-app项目的pages.js中
  * @param mix {Object | String} loader 或者 依赖的路径
+ * @param fromFilename {String} 调用方法的文件路径
  * @returns {*} mix为loader时为初始化，返回hotRequire，mix为依赖的路径时，返回依赖
  */
-function uniPagesHotModule (mix = {}) {
+function uniPagesHotModule (mix = {}, fromFilename) {
     let parentPath = ''
+    fromFilename = fromFilename || callsites()[1].getFileName()
     try{
         // 尝试获取调用此方法的文件所在目录
-        parentPath = callsites()[1].getFileName().match(/(.*)[\/\\][^\/\\]+$/)[1]
+        parentPath = path.dirname(fromFilename)
     }catch(e){}
 
     // 保留老的api
     function hotRequire(modulesPath){
         let finalPath = path.resolve(parentPath, modulesPath)
-        console.log(333333333, finalPath)
-        // addDependency(finalPath)
-        // delete require.cache[finalPath]
         return require(finalPath)
     }
 
     if(mix && typeof mix === 'object'){
-        let topPath
+        const topPath = path.resolve(process.env.UNI_INPUT_DIR, 'pages.js')
         if (typeof mix.addDependency === 'function') {
             addDependency = mix.addDependency
             try {
-                topPath = callsites()[1].getFileName()
                 // 默认将初始化的文件添加到依赖中
                 addDependency(topPath)
             } catch (e) {}
@@ -65,7 +63,6 @@ function uniPagesHotModule (mix = {}) {
                 })
                 if (!isHack) return oldLoad.call(this, request, parentModule, isMain)
 
-                console.log(77777,  request, parentModule.path)
                 const modulePath = path.resolve(parentModule.path, request)
 
                 // 注入require.context
@@ -88,16 +85,10 @@ function uniPagesHotModule (mix = {}) {
                             }
                         })
                     }
-                    console.log(11111111111, modulePath)
                     // 清除模块的缓存
                     delete require.cache[modulePath]
-                    // delete Module._cache[modulePath]
-                } catch (e) {
-                    console.log(222222222, e)
-                    throw Error(e)
-                }
+                } catch (e) {}
                 // 这里应该重新执行一遍，因为之前清除了cache
-                // return oldResolveFilename.call(this, request, parentModule, isMain, options)
                 return oldLoad.call(this, request, parentModule, isMain)
             }
         }
@@ -167,6 +158,13 @@ function hotRequireContext (dir, deep = false, fileRegExp) {
     return output
 }
 
+uniPagesHotModule.hot = function (pagesFunction) {
+    const fromFilename = callsites()[1].getFileName()
+    return function (pagesJson, loader) {
+        uniPagesHotModule(loader, fromFilename)
+        return pagesFunction.call(this, pagesJson, loader)
+    }
+}
 uniPagesHotModule.context = hotRequireContext
 // 在Module里暴露一个信息，以便require.context的注入可以获取到
 Module.hackInfo = {
