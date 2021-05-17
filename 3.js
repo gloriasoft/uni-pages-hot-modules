@@ -1,2 +1,2 @@
-console.log(44444, require.context)
-console.log(require.context())
+const path = require('path')
+console.log(path.dirname('./as/bb'))

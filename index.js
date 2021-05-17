@@ -13,7 +13,7 @@ const callsites = require('callsites')
 const fs = require('fs')
 const Module = require('module').Module
 const deepFind = require('./deepFind')
-const oldResolveFilename = Module._resolveFilename
+const oldLoad = Module._load
 let addDependency
 
 /**
@@ -31,8 +31,11 @@ function uniPagesHotModule (mix = {}) {
     }catch(e){}
 
     // 保留老的api
-    function hotRequire(modulesPath, fromRequire = false){
+    function hotRequire(modulesPath){
         let finalPath = path.resolve(parentPath, modulesPath)
+        console.log(333333333, finalPath)
+        // addDependency(finalPath)
+        // delete require.cache[finalPath]
         return require(finalPath)
     }
 
@@ -47,10 +50,8 @@ function uniPagesHotModule (mix = {}) {
             } catch (e) {}
 
             // 变相拦截require
-            Module._resolveFilename = function (request, parentModule, isMain, options) {
-
-                // 运行一次_findPath用以获取模块绝对路径
-                const modulePath = oldResolveFilename.call(this, request, parentModule, isMain, options)
+            Module._load = function (request, parentModule, isMain) {
+                if (!request.match(/^[.\\]/) && !request.match(/\\/)) return oldLoad.call(this, request, parentModule, isMain)
 
                 let isHack = false
                 // 向上寻找父模块是否是topPath
@@ -62,7 +63,10 @@ function uniPagesHotModule (mix = {}) {
                         return false
                     }
                 })
-                if (!isHack) return modulePath
+                if (!isHack) return oldLoad.call(this, request, parentModule, isMain)
+
+                console.log(77777,  request, parentModule.path)
+                const modulePath = path.resolve(parentModule.path, request)
 
                 // 注入require.context
                 const wrap = Module.wrap
@@ -76,7 +80,7 @@ function uniPagesHotModule (mix = {}) {
 
                     const selfModule = require.cache[modulePath]
                     // 先清parent中的children里的module，避免内存泄露
-                    if (selfModule.parent && selfModule.parent.children) {
+                    if (selfModule && selfModule.parent && selfModule.parent.children) {
                         selfModule.parent.children.find((m, index, arr) => {
                             if (m === selfModule) {
                                 arr.splice(index, 1)
@@ -84,11 +88,17 @@ function uniPagesHotModule (mix = {}) {
                             }
                         })
                     }
+                    console.log(11111111111, modulePath)
                     // 清除模块的缓存
                     delete require.cache[modulePath]
-                } catch (e) {}
+                    // delete Module._cache[modulePath]
+                } catch (e) {
+                    console.log(222222222, e)
+                    throw Error(e)
+                }
                 // 这里应该重新执行一遍，因为之前清除了cache
-                return oldResolveFilename.call(this, request, parentModule, isMain, options)
+                // return oldResolveFilename.call(this, request, parentModule, isMain, options)
+                return oldLoad.call(this, request, parentModule, isMain)
             }
         }
         return hotRequire
@@ -109,7 +119,6 @@ function uniPagesHotModule (mix = {}) {
  */
 function hotRequireContext (dir, deep = false, fileRegExp) {
     const filesMap = {}
-    // const callsites = require('callsites');
     let topPath = ''
     let ownerPath = ''
     try{
