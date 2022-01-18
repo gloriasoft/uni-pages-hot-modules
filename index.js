@@ -14,6 +14,7 @@ const fs = require('fs')
 const Module = require('module').Module
 const deepFind = require('./deepFind')
 const oldLoad = Module._load
+const wrap = Module.wrap
 let addDependency
 
 /**
@@ -49,7 +50,10 @@ function uniPagesHotModule (mix = {}, fromFilename) {
 
             // 变相拦截require
             Module._load = function (request, parentModule, isMain) {
-                if (!request.match(/^[.\\]/) && !request.match(/\\/)) return oldLoad.call(this, request, parentModule, isMain)
+                if (!request.match(/^[.\\]/) && !request.match(/\\/) || request.match(/\.json$/i)) {
+                    Module.wrap = wrap
+                    return oldLoad.call(this, request, parentModule, isMain)
+                }
 
                 let isHack = false
                 // 向上寻找父模块是否是topPath
@@ -66,7 +70,6 @@ function uniPagesHotModule (mix = {}, fromFilename) {
                 const modulePath = path.resolve(parentModule.path, request)
 
                 // 注入require.context
-                const wrap = Module.wrap
                 Module.wrap = function(script) {
                     return wrap('require.context = module.constructor.hackInfo.hotRequireContext;\n' + script)
                 }
