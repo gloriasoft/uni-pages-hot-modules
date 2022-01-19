@@ -50,7 +50,7 @@ function uniPagesHotModule (mix = {}, fromFilename) {
 
             // 变相拦截require
             Module._load = function (request, parentModule, isMain) {
-                if (!request.match(/^[.\\]/) && !request.match(/\\/) || request.match(/\.json$/i)) {
+                if (!request.match(/^[.\\\/]/) && !request.match(/[\\\/]/) || request.match(/\.json$/i)) {
                     Module.wrap = wrap
                     return oldLoad.call(this, request, parentModule, isMain)
                 }
