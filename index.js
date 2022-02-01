@@ -57,6 +57,13 @@ let addDependency
 let tmpfile = tmp.fileSync();
 uniVue3HotPathList.add(tmpfile.name)
 
+function touchTmpFileChange () {
+    let now = new Date();
+    fs.utimes(tmpfile.name, now, now, error => {
+        if (error) console.error(error);
+    });
+}
+
 /**
  * CommonJs规范
  * 引入相关的js依赖，并且可以使依赖在@dcloudio/webpack-uni-pages-loader中进行热重载
@@ -280,24 +287,14 @@ uniPagesHotModule.createHotVitePlugin = function() {
                 this.addWatchFile(jsPath)
             })
 
-
-            // Create our own watcher to watch the src dir for new files. When a new
-            // file shows up, touch a tmp file to give Rollup a clue. The getInput
-            // function will calculate new inputs to Rollup, so we don't need to
-            // listen for unlink or change events because Rollup handles both of
-            // these just fine.
-            // https://github.com/rollup/rollup/blob/cd47fcf3169d9592e9065ec2d376859475d0b108/src/watch/fileWatcher.ts#L61-L62
             uniVue3HotDictList.forEach((dict) => {
                 if (!chokidarList.has(dict)) {
                     chokidarList.add(dict)
-                    chokidar.watch(dict).on("add", () => {
-                        let now = new Date();
-                        fs.utimes(tmpfile.name, now, now, error => {
-                            if (error) console.error(error);
-                        });
-                    });
+                    chokidar.watch(dict).on("add", touchTmpFileChange);
                     chokidar.watch(dict).on("unlink", (modulePath) => {
                         uniVue3HotPathList.delete(modulePath)
+                        // 延迟100毫秒，为了适应变更文件名的场景，会先创建文件再删除老文件，会触发h5的esbuild先报错，100毫秒后再更新恢复正常
+                        setTimeout(touchTmpFileChange, 100)
                     });
                 }
             })
