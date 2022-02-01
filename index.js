@@ -1,4 +1,5 @@
 /**
+ * Vue2 webpack下使用
  * 在webpack的客户端包中如果要引入pages.js的相关依赖（pages.js文件本身不能被webpack的客户端包依赖）
  * 可以在pages.js中使用global引入uni-pages-hot-modules
  * 比如 global.hotRequire = require('uni-pages-hot-modules')
@@ -6,6 +7,9 @@
  * 在vue.config.js中使用DefinePlugin将hotRequire和hotRequire.context分别替换成require和require.context
  * 在uni-app的应用中就可以引入pages.js的相关依赖模块了。比如可以直接用于uni-simple-router
  * 并且可以做到客户端包和本地配置包的双向热重载
+ *
+ * Vue3 vite下使用
+ * 在pages.json中使用条件编译直接 #exec hotJs('./111.js')
  */
 
 // 判断是否vue3和vite

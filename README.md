@@ -62,7 +62,7 @@ hotJs引入的js的`module.exports`的结果将通过`JSON.stringify`直接呈�
 /* #exec hotJs('./other.js') */
 // #exec hotJs('./other.js')
 ```
-#### require.context （见vue2 webpack版本的说明）
+#### require.context （在pages.json依赖的js中使用，见vue2 webpack版本的说明）
 模拟webpack的require.context，读取指定路径下符合条件的所有文件  
 ___
 ## vue2 webpack版本 使用说明    
