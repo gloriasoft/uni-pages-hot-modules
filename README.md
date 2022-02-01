@@ -1,17 +1,72 @@
 # uni-pages-hot-modules  
 ## uni-app的pages.json的模块化及模块热重载  
 解决uni-app的pages.json无法模块化的问题，并且解决模块热重载和缓存的问题  
-  
-### WOW!  
-0.1.0版本之后，直接可以使用require达到热更新，只需要引入高阶函数`hot`即可  
-废弃hotRequire方法，但是您仍可以使用，使用方式可以查看之前版本的说明  
+
 ### 安装  
 ```
 npm i uni-pages-hot-modules -S
 ```
-[pages.json模块化及使用了uni-pages-hot-modules进行模块热重载的uni-app示例项目](https://github.com/devilwjp/uni-pages-hot-modules-demo)  
+[uni-app vite版本(vue3)示例项目](https://github.com/devilwjp/uni-pages-hot-modules-vite-demo)
+[uni-app webpack版本(vue2)示例项目](https://github.com/devilwjp/uni-pages-hot-modules-demo)
   
-### 注意！  
+
+# uniapp 版本分界线说明  
+## vue3 vite版本 使用说明  
+uniapp vue3 vite版本你不再支持pages.js的钩子，所以uni-pages-hot-modules的使用方式转变为直接在pages.json中通过特殊的`条件编译`命令插入js入口，一种非常cool的使用方式！  
+```json
+{
+  "pages": /* #exec hotJs('./pages_moudule/index.js') */,
+  "subPackages": /* #exec hotJs('./subpackage_moudule/index.js') */,
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "uni-app",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  }
+}
+```
+### 注意！
+所有插入pages.json的js都必须是commonJs规范（包括这些js依赖的其他js）  
+适用于于uniapp vue3 vite版本的uni-pages-hot-modules版本要求>=1.0.0
+### 使用方式  
+要使pages.json中可以使用特殊的条件编译命令，需要配置项目根目录中的`vite.config.js`  
+```js
+// vite.config.js
+import { defineConfig } from 'vite'
+import uni from '@dcloudio/vite-plugin-uni'
+
+// 引入uni-pages-hot-modules
+import uniHot from 'uni-pages-hot-modules'
+// 安装条件编译命令，安装之后，uniapp就会支持exec hotJs的条件编译
+uniHot.setupHotJs()
+// 也可以自定义条件编译的方法名
+// 以下执行的结果，在条件编译中将变成exec customJsFun
+// uniHot.setupHotJs('customJsFun')
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [
+    uni(),
+    // 注册uni-pages-hot-modules的热更新vite插件
+    uniHot.createHotVitePlugin(),
+  ],
+})
+```
+### API
+#### hotJs (通过条件编译使用在pages.json中，也可以自定义名称)  
+uniapp的条件编译是借鉴`preprocess`插件，因此具备`#exec`命令  
+hotJs引入的js的`module.exports`的结果将通过`JSON.stringify`直接呈现在pages.json中  
+使用前提条件，必须在`vite.config.js`中配置完成`setupHotJs`和`createHotVitePlugin`  
+```js
+// 在pages.json中可使用
+/* #exec hotJs('./other.js') */
+// #exec hotJs('./other.js')
+```
+#### require.context （见vue2 webpack版本的说明）
+模拟webpack的require.context，读取指定路径下符合条件的所有文件  
+___
+## vue2 webpack版本 使用说明    
+### 注意！
 + 发现uni-app每次更新对pages.js的支持度会不同，比如某个版本竟然注释掉了对pages.js的热重载依赖，这里做了兼容。只要uni-app不推翻自己的设计，此功能长久有效  
 + 使用uni-pages-hot-modules引入模块必须输入全的文件名包括后缀，否则将不会进行热重载  
 

@@ -8,6 +8,40 @@
  * 并且可以做到客户端包和本地配置包的双向热重载
  */
 
+// 判断是否vue3和vite
+let Vue3 = false
+let getPreVueContext
+let handleHotUpdate
+const uniVue3HotPathList = new Set()
+const uniVue3HotDictList = new Set()
+let oldH5HotUpdate
+let h5Server
+try {
+    getPreVueContext = require('@dcloudio/uni-cli-shared/dist/preprocess/context').getPreVueContext()
+    if (getPreVueContext.VUE3) {
+        Vue3 = true
+    }
+    // 为vite版的uni-h5单独处理
+    handleHotUpdate = require('@dcloudio/uni-h5-vite/dist/plugin/handleHotUpdate')
+    oldH5HotUpdate = handleHotUpdate.createHandleHotUpdate()
+
+    // 这里骚操作一下，重写createHandleHotUpdate，拦截入参的file属性，强行加上.pages.json的后缀
+    // 因为uni vite本身判断是pagesJson的变更是通过endsWith，因此这里可以抓个漏洞，让uni误以为是pagesJson变更了
+    handleHotUpdate.createHandleHotUpdate = function () {
+        return async function (obj) {
+            h5Server = obj.server
+            const newParams = {...obj}
+            if (uniVue3HotPathList.has(obj.file) || uniVue3HotPathList.has(obj.file.replace(/\//g, '\\'))) {
+                // newParams.file = obj.file + '.pages.json'
+                newParams.file = 'pages.json'
+            }
+            return await oldH5HotUpdate.call(this, newParams)
+        }
+    }
+} catch (e) {}
+
+const chokidar = require('chokidar')
+const tmp = require('tmp')
 const path = require('path')
 const callsites = require('callsites')
 const fs = require('fs')
@@ -16,6 +50,8 @@ const deepFind = require('./deepFind')
 const oldLoad = Module._load
 const wrap = Module.wrap
 let addDependency
+let tmpfile = tmp.fileSync();
+uniVue3HotPathList.add(tmpfile.name)
 
 /**
  * CommonJs规范
@@ -25,9 +61,12 @@ let addDependency
  * @param fromFilename {String} 调用方法的文件路径
  * @returns {*} mix为loader时为初始化，返回hotRequire，mix为依赖的路径时，返回依赖
  */
-function uniPagesHotModule (mix = {}, fromFilename) {
+function uniPagesHotModule (mix = {}, fromFilename, pureRequire = false) {
     let parentPath = ''
     fromFilename = fromFilename || callsites()[1].getFileName()
+    if (getPreVueContext && typeof mix === 'string') {
+        fromFilename = mix
+    }
     try{
         // 尝试获取调用此方法的文件所在目录
         parentPath = path.dirname(fromFilename)
@@ -39,8 +78,26 @@ function uniPagesHotModule (mix = {}, fromFilename) {
         return require(finalPath)
     }
 
-    if(mix && typeof mix === 'object'){
-        const topPath = path.resolve(process.env.UNI_INPUT_DIR, 'pages.js')
+    if(mix && typeof mix === 'object' || getPreVueContext && typeof mix === 'string' && !pureRequire){
+        let topPath
+        if (getPreVueContext) {
+            topPath = path.resolve(process.env.UNI_INPUT_DIR, mix)
+            // 模拟一个伪函数
+            mix.__proto__.addDependency = function () {}
+
+            // 校验入口js是否存在
+            try {
+                require.resolve(topPath)
+            } catch (e) {
+                console.warn(e)
+                return
+            }
+
+            uniVue3HotPathList.add(topPath)
+        } else {
+            topPath = path.resolve(process.env.UNI_INPUT_DIR, 'pages.js')
+        }
+
         if (typeof mix.addDependency === 'function') {
             addDependency = mix.addDependency
             try {
@@ -50,24 +107,35 @@ function uniPagesHotModule (mix = {}, fromFilename) {
 
             // 变相拦截require
             Module._load = function (request, parentModule, isMain) {
-                if (!request.match(/^[.\\\/]/) && !request.match(/[\\\/]/) || request.match(/\.json$/i)) {
+                if (!request.match(/^[.\\\/]/) && !request.match(/:/) || request.match(/\.json$/i)) {
                     Module.wrap = wrap
                     return oldLoad.call(this, request, parentModule, isMain)
                 }
 
+
                 let isHack = false
-                // 向上寻找父模块是否是topPath
-                deepFind(parentModule, (child) => {
-                    if (child.parent) return [child.parent]
-                }, (child) => {
-                    if (child.filename === topPath) {
-                        isHack = true
-                        return false
-                    }
-                })
+
+                let tryResolve = request
+                // try {
+                //     tryResolve = require(request)
+                // } catch (e) {}
+                if (tryResolve !== topPath) {
+                    // 向上寻找父模块是否是topPath
+                    deepFind(parentModule, (child) => {
+                        if (child.parent) return [child.parent]
+                    }, (child) => {
+                        if (child.filename === require.resolve(topPath)) {
+                            isHack = true
+                            return false
+                        }
+                    })
+                } else {
+                    isHack = true
+                }
+
                 if (!isHack) return oldLoad.call(this, request, parentModule, isMain)
 
-                const modulePath = path.resolve(parentModule.path, request)
+                const modulePath = require.resolve(request !== topPath ? path.resolve(parentModule.path, request) : request)
 
                 // 注入require.context
                 Module.wrap = function(script) {
@@ -75,6 +143,9 @@ function uniPagesHotModule (mix = {}, fromFilename) {
                 }
 
                 try {
+                    if (getPreVueContext) {
+                        uniVue3HotPathList.add(modulePath)
+                    }
                     // 将模块作为依赖加到webpack的loader中
                     addDependency(modulePath)
 
@@ -90,13 +161,16 @@ function uniPagesHotModule (mix = {}, fromFilename) {
                     }
                     // 清除模块的缓存
                     delete require.cache[modulePath]
-                } catch (e) {}
+                } catch (e) {
+                    console.log(333333, e)
+                }
                 // 这里应该重新执行一遍，因为之前清除了cache
                 return oldLoad.call(this, request, parentModule, isMain)
             }
         }
         return hotRequire
     }
+
     if (typeof mix === 'string'){
         return hotRequire(mix)
     }
@@ -120,6 +194,7 @@ function hotRequireContext (dir, deep = false, fileRegExp) {
         ownerPath = callsites()[1].getFileName()
         topPath = ownerPath.match(/(.*)[\/\\][^\/\\]+$/)[1]
     }catch(e){}
+    uniVue3HotDictList.add(topPath)
     let firstPath = path.resolve(topPath,dir)
     function findFiles (dirName) {
         fs.readdirSync(dirName).map((item)=>{
@@ -140,7 +215,12 @@ function hotRequireContext (dir, deep = false, fileRegExp) {
             // 去除自己避免死循环
             if (ownerPath === absolutePath) return
 
-            filesMap[absolutePath.replace(topPath,'.').replace(/\\\\/g,'/').replace(/\\/g,'/')] = uniPagesHotModule(absolutePath)
+            const modulePath = absolutePath.replace(topPath,'.').replace(/\\\\/g,'/').replace(/\\/g,'/')
+            if (getPreVueContext) {
+                // uniVue3HotPathList.add(modulePath)
+                uniPagesHotModule(absolutePath)
+            }
+            filesMap[modulePath] = uniPagesHotModule(absolutePath, null, true)
         })
     }
     function keys () {
@@ -172,6 +252,56 @@ uniPagesHotModule.context = hotRequireContext
 // 在Module里暴露一个信息，以便require.context的注入可以获取到
 Module.hackInfo = {
     hotRequireContext
+}
+
+// uni vite专用，用于注册条件编译的hotJs方法
+uniPagesHotModule.setupHotJs = function (customName = 'hotJs') {
+    if (getPreVueContext) {
+        getPreVueContext[customName] = function (jsPath) {
+            uniPagesHotModule(jsPath)
+            return JSON.stringify(require(path.resolve(process.env.UNI_INPUT_DIR, jsPath)))
+        }
+    } else {
+        throw Error('hotJs方法只支持在uni vite版本使用！')
+    }
+}
+
+// uni vite专用，用于给vite.config.js添加热更新插件，此插件需配合setupHotJs使用，h5情况下可以不使用此插件
+uniPagesHotModule.createHotVitePlugin = function() {
+    const chokidarList = new Set()
+    return {
+        name: 'vite:uni-hot-watch',
+        transform () {
+            uniVue3HotPathList.forEach(jsPath => {
+                this.addWatchFile(jsPath)
+            })
+
+
+            // Create our own watcher to watch the src dir for new files. When a new
+            // file shows up, touch a tmp file to give Rollup a clue. The getInput
+            // function will calculate new inputs to Rollup, so we don't need to
+            // listen for unlink or change events because Rollup handles both of
+            // these just fine.
+            // https://github.com/rollup/rollup/blob/cd47fcf3169d9592e9065ec2d376859475d0b108/src/watch/fileWatcher.ts#L61-L62
+            uniVue3HotDictList.forEach((dict) => {
+                if (!chokidarList.has(dict)) {
+                    chokidarList.add(dict)
+                    chokidar.watch(dict).on("add", () => {
+                        let now = new Date();
+                        fs.utimes(tmpfile.name, now, now, error => {
+                            if (error) console.error(error);
+                        });
+                    });
+                    chokidar.watch(dict).on("unlink", (modulePath) => {
+                        uniVue3HotPathList.delete(modulePath)
+                    });
+                }
+            })
+
+            // Watch the tmp file instead of the src dir...
+            this.addWatchFile(tmpfile.name);
+        }
+    }
 }
 
 module.exports = uniPagesHotModule
