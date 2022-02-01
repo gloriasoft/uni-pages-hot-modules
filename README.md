@@ -6,13 +6,13 @@
 ```
 npm i uni-pages-hot-modules -S
 ```
-[uni-app vite版本(vue3)示例项目](https://github.com/devilwjp/uni-pages-hot-modules-vite-demo)
-[uni-app webpack版本(vue2)示例项目](https://github.com/devilwjp/uni-pages-hot-modules-demo)
+[uni-app vite版本(vue3)示例项目](https://github.com/devilwjp/uni-pages-hot-modules-vite-demo)  
+[uni-app webpack版本(vue2)示例项目](https://github.com/devilwjp/uni-pages-hot-modules-demo)  
   
 
 # uniapp 版本分界线说明  
 ## vue3 vite版本 使用说明  
-uniapp vue3 vite版本你不再支持pages.js的钩子，所以uni-pages-hot-modules的使用方式转变为直接在pages.json中通过特殊的`条件编译`命令插入js入口，一种非常cool的使用方式！  
+uniapp vue3 vite版本已不再支持pages.js的钩子，所以uni-pages-hot-modules的使用方式转变为直接在pages.json中通过特殊的`条件编译`命令插入js入口，一种非常cool的使用方式！  
 ```json
 {
   "pages": /* #exec hotJs('./pages_moudule/index.js') */,
@@ -27,7 +27,7 @@ uniapp vue3 vite版本你不再支持pages.js的钩子，所以uni-pages-hot-mod
 ```
 ### 注意！
 所有插入pages.json的js都必须是commonJs规范（包括这些js依赖的其他js）  
-适用于于uniapp vue3 vite版本的uni-pages-hot-modules版本要求>=1.0.0
+适用于uniapp vue3 vite版本的uni-pages-hot-modules版本要求>=1.0.0
 ### 使用方式  
 要使pages.json中可以使用特殊的条件编译命令，需要配置项目根目录中的`vite.config.js`  
 ```js
