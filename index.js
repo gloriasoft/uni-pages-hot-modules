@@ -20,6 +20,15 @@ const uniVue3HotPathList = new Set()
 const uniVue3HotDictList = new Set()
 let oldH5HotUpdate
 let h5Server
+let h5ServerUpdateLock
+function createGlobalPromise () {
+    let resolve
+    const lock = new Promise((r) => {
+        resolve = r
+    })
+    lock.resolve = resolve
+    return lock
+}
 try {
     getPreVueContext = require('@dcloudio/uni-cli-shared/dist/preprocess/context').getPreVueContext()
     if (getPreVueContext.VUE3) {
@@ -33,13 +42,26 @@ try {
     // 因为uni vite本身判断是pagesJson的变更是通过endsWith，因此这里可以抓个漏洞，让uni误以为是pagesJson变更了
     handleHotUpdate.createHandleHotUpdate = function () {
         return async function (obj) {
+            // 使用promise锁控制前一个正在执行的server执行完再执行后续的server变更
+            if (h5ServerUpdateLock) {
+                await h5ServerUpdateLock
+            } else {
+                h5ServerUpdateLock = createGlobalPromise()
+            }
             h5Server = obj.server
             const newParams = {...obj}
             if (uniVue3HotPathList.has(obj.file) || uniVue3HotPathList.has(obj.file.replace(/\//g, '\\'))) {
                 // newParams.file = obj.file + '.pages.json'
                 newParams.file = 'pages.json'
             }
-            return await oldH5HotUpdate.call(this, newParams)
+            const res = await oldH5HotUpdate.call(this, newParams)
+            // 延迟一会，避免h5情况下预览出错
+            await(new Promise((resolve) => {
+                setTimeout(resolve, 100)
+            }))
+            h5ServerUpdateLock.resolve()
+            h5ServerUpdateLock = createGlobalPromise()
+            return res
         }
     }
 } catch (e) {}
@@ -293,8 +315,6 @@ uniPagesHotModule.createHotVitePlugin = function() {
                     chokidar.watch(dict).on("add", touchTmpFileChange);
                     chokidar.watch(dict).on("unlink", (modulePath) => {
                         uniVue3HotPathList.delete(modulePath)
-                        // 延迟100毫秒，为了适应变更文件名的场景，会先创建文件再删除老文件，会触发h5的esbuild先报错，100毫秒后再更新恢复正常
-                        setTimeout(touchTmpFileChange, 100)
                     });
                 }
             })
