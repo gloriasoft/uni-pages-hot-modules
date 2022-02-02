@@ -16,7 +16,7 @@ uniapp vue3 vite版本已不再默认支持pages.js的钩子，所以uni-pages-h
 ```json
 {
   "pages": /* #exec hotJs('./page_modules/index.js') */,
-  "subPackages": /* #exec hotJs('./subpackage_modules/index.js'') */,
+  "subPackages": /* #exec hotJs('./subpackage_modules/index.js') */,
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "uni-app",
