@@ -172,9 +172,7 @@ function uniPagesHotModule (mix = {}, fromFilename, pureRequire = false) {
                     }
                     // 清除模块的缓存
                     delete require.cache[modulePath]
-                } catch (e) {
-                    console.log(333333, e)
-                }
+                } catch (e) {}
                 // 这里应该重新执行一遍，因为之前清除了cache
                 return oldLoad.call(this, request, parentModule, isMain)
             }
@@ -277,7 +275,7 @@ uniPagesHotModule.setupHotJs = function (customName = 'hotJs') {
     }
 }
 
-// uni vite专用，用于给vite.config.js添加热更新插件，此插件需配合setupHotJs使用，h5情况下可以不使用此插件
+// uni vite专用，用于给vite.config.js添加热更新插件，此插件需配合setupHotJs使用
 uniPagesHotModule.createHotVitePlugin = function() {
     const chokidarList = new Set()
     return {
@@ -287,6 +285,8 @@ uniPagesHotModule.createHotVitePlugin = function() {
                 this.addWatchFile(jsPath)
             })
 
+            // rollup的缺陷（addWatchFile不能监听一个目录新增的文件触发变更）
+            // 骚操作：创建一个临时文件让rollup监听，借助chokidar检测目录变换并且触发临时文件变更
             uniVue3HotDictList.forEach((dict) => {
                 if (!chokidarList.has(dict)) {
                     chokidarList.add(dict)
