@@ -33,13 +33,13 @@ uniapp vue3 vite版本已不再默认支持pages.js的钩子，所以uni-pages-h
 ```js
 // /src/pages.js
 module.exports = {
-    "pages": require('./pages_moudule/index.js'),
-    "subPackages": require('./subpackage_moudule/index.js'),
-    "globalStyle": {
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "uni-app",
-        "navigationBarBackgroundColor": "#F8F8F8",
-        "backgroundColor": "#F8F8F8"
+    pages: require('./pages_moudule/index.js'),
+    subPackages: require('./subpackage_moudule/index.js'),
+    globalStyle: {
+        navigationBarTextStyle: 'black',
+        navigationBarTitleText: 'uni-app',
+        navigationBarBackgroundColor: '#F8F8F8',
+        backgroundColor: '#F8F8F8'
     }
 }
 ```
