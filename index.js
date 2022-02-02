@@ -42,11 +42,14 @@ try {
     // 因为uni vite本身判断是pagesJson的变更是通过endsWith，因此这里可以抓个漏洞，让uni误以为是pagesJson变更了
     handleHotUpdate.createHandleHotUpdate = function () {
         return async function (obj) {
+            let lastLock
             // 使用promise锁控制前一个正在执行的server执行完再执行后续的server变更
             if (h5ServerUpdateLock) {
-                await h5ServerUpdateLock
+                lastLock = h5ServerUpdateLock
+                await lastLock
             } else {
                 h5ServerUpdateLock = createGlobalPromise()
+                lastLock = h5ServerUpdateLock
             }
             h5Server = obj.server
             const newParams = {...obj}
@@ -59,8 +62,8 @@ try {
             await(new Promise((resolve) => {
                 setTimeout(resolve, 100)
             }))
-            h5ServerUpdateLock.resolve()
-            h5ServerUpdateLock = createGlobalPromise()
+            lastLock.resolve()
+            h5ServerUpdateLock = null
             return res
         }
     }
