@@ -12,7 +12,7 @@ npm i uni-pages-hot-modules -S
 
 # uniapp 版本分界线说明  
 ## vue3 vite版本 使用说明  
-uniapp vue3 vite版本已不再支持pages.js的钩子，所以uni-pages-hot-modules的使用方式转变为直接在pages.json中通过特殊的`条件编译`命令插入js入口，一种非常cool的使用方式！  
+uniapp vue3 vite版本已不再默认支持pages.js的钩子，所以uni-pages-hot-modules的使用方式转变为直接在pages.json中通过特殊的`条件编译`命令插入js入口，一种非常cool的使用方式！  
 ```json
 {
   "pages": /* #exec hotJs('./pages_moudule/index.js') */,
@@ -24,11 +24,48 @@ uniapp vue3 vite版本已不再支持pages.js的钩子，所以uni-pages-hot-mod
     "backgroundColor": "#F8F8F8"
   }
 }
+```  
+或者直接将整个pages.json都托管到一个js中，比如托管给pages.js，**那么直接将整个pages.json的内容设置成如下的一行注释即可**  
+```js
+// #exec hotJs('./pages.js')
+```
+然后在pages.json相同的路径下建立`pages.js`  
+```js
+// /src/pages.js
+module.exports = {
+    "pages": require('./pages_moudule/index.js'),
+    "subPackages": require('./subpackage_moudule/index.js'),
+    "globalStyle": {
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "uni-app",
+        "navigationBarBackgroundColor": "#F8F8F8",
+        "backgroundColor": "#F8F8F8"
+    }
+}
 ```
 ### 注意！
-所有插入pages.json的js都必须是commonJs规范（包括这些js依赖的其他js）  
-适用于uniapp vue3 vite版本的uni-pages-hot-modules版本要求>=1.0.0
-### 使用方式  
+所有插入pages.json的js（包括这些js依赖的其他js）都必须是commonJs规范  
+适用于uniapp vue3 vite版本的uni-pages-hot-modules版本要求>=1.0.0  
+所有插入pages.json的js（包括这些js依赖的其他js）**不支持**uniapp的条件编译，替代方案是直接通过js判断uniapp的条件编译变量  
+#### 如何获取uniapp的条件编译变量  
+```js
+// /src/pages.js
+// 获取uniapp的条件编译环境变量
+const uniContext = require('@dcloudio/uni-cli-shared/dist/preprocess/context').getPreVueContext()
+module.exports = {
+    pages: require('./pages_moudule/index.js'),
+    subPackages: require('./subpackage_moudule/index.js'),
+    globalStyle: {
+        navigationBarTextStyle: 'black',
+        // 判断是否是H5环境
+        navigationBarTitleText: uniContext.H5 ? 'H5环境' : '非H5环境',
+        navigationBarBackgroundColor: '#F8F8F8',
+        // 判断是否是微信小程序环境
+        backgroundColor: uniContext.MP_WEIXIN ? '#F8F8F8' : '#000'
+    }
+}
+```
+### 前置配置  
 要使pages.json中可以使用特殊的条件编译命令，需要配置项目根目录中的`vite.config.js`  
 ```js
 // vite.config.js
