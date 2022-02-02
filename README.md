@@ -15,8 +15,8 @@ npm i uni-pages-hot-modules -S
 uniapp vue3 vite版本已不再默认支持pages.js的钩子，所以uni-pages-hot-modules的使用方式转变为直接在pages.json中通过特殊的`条件编译`命令插入js入口，一种非常cool的使用方式！  
 ```json
 {
-  "pages": /* #exec hotJs('./pages_moudule/index.js') */,
-  "subPackages": /* #exec hotJs('./subpackage_moudule/index.js') */,
+  "pages": /* #exec hotJs('./page_modules/index.js') */,
+  "subPackages": /* #exec hotJs('./subpackage_modules/index.js'') */,
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "uni-app",
@@ -33,8 +33,8 @@ uniapp vue3 vite版本已不再默认支持pages.js的钩子，所以uni-pages-h
 ```js
 // /src/pages.js
 module.exports = {
-    pages: require('./pages_moudule/index.js'),
-    subPackages: require('./subpackage_moudule/index.js'),
+    pages: require('./page_modules/index.js'),
+    subPackages: require('./subpackage_modules/index.js'),
     globalStyle: {
         navigationBarTextStyle: 'black',
         navigationBarTitleText: 'uni-app',
@@ -53,15 +53,15 @@ module.exports = {
 // 获取uniapp的条件编译环境变量
 const uniContext = require('@dcloudio/uni-cli-shared/dist/preprocess/context').getPreVueContext()
 module.exports = {
-    pages: require('./pages_moudule/index.js'),
-    subPackages: require('./subpackage_moudule/index.js'),
+    pages: require('./page_modules/index.js'),
+    subPackages: require('./subpackage_modules/index.js'),
     globalStyle: {
         navigationBarTextStyle: 'black',
         // 判断是否是H5环境
         navigationBarTitleText: uniContext.H5 ? 'H5环境' : '非H5环境',
         navigationBarBackgroundColor: '#F8F8F8',
         // 判断是否是微信小程序环境
-        backgroundColor: uniContext.MP_WEIXIN ? '#F8F8F8' : '#000'
+        backgroundColor: '#F8F8F8'
     }
 }
 ```
