@@ -26,7 +26,7 @@ uniapp vue3 vite版本已不再默认支持pages.js的钩子，所以uni-pages-h
 }
 ```  
 或者直接将整个pages.json都托管到一个js中，比如托管给pages.js，**那么直接将整个pages.json的内容设置成如下的一行注释即可**  
-```js
+```json
 // #exec hotJs('./pages.js')
 ```
 然后在pages.json相同的路径下建立`pages.js`  
