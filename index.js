@@ -78,6 +78,7 @@ const Module = require('module').Module
 const deepFind = require('./deepFind')
 const oldLoad = Module._load
 const wrap = Module.wrap
+let watcher
 let addDependency
 let tmpfile = tmp.fileSync();
 uniVue3HotPathList.add(tmpfile.name)
@@ -315,8 +316,9 @@ uniPagesHotModule.createHotVitePlugin = function() {
             uniVue3HotDictList.forEach((dict) => {
                 if (!chokidarList.has(dict)) {
                     chokidarList.add(dict)
-                    chokidar.watch(dict).on("add", touchTmpFileChange);
-                    chokidar.watch(dict).on("unlink", (modulePath) => {
+                    watcher = chokidar.watch(dict)
+                    watcher.on("add", touchTmpFileChange);
+                    watcher.on("unlink", (modulePath) => {
                         uniVue3HotPathList.delete(modulePath)
                     });
                 }
@@ -324,6 +326,9 @@ uniPagesHotModule.createHotVitePlugin = function() {
 
             // Watch the tmp file instead of the src dir...
             this.addWatchFile(tmpfile.name);
+        },
+        buildEnd() {
+            watcher && watcher.close()
         }
     }
 }
